@@ -1,11 +1,11 @@
-def partData(seq, leftLen=None, rightLen=None):
+def partData(sequence, leftLen=None, rightLen=None):
     if leftLen is None:
-        leftLen = len(seq) / 2
+        leftLen = len(sequence) / 2
     if rightLen is None:
-        rightLen = len(seq) / 2
+        rightLen = len(sequence) / 2
 
     return {
-        'sequence': seq,
+        'sequence': sequence,
         'minOverlap': [leftLen, rightLen]
     }
 

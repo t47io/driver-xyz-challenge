@@ -31,44 +31,39 @@ def matchReadExtendRight(read, assembly):
         return (True, model.partData(newSequence, read['minOverlap'][0], newRightLen))
 
 
-def assembleParts(remainingReadsList, assembledPartsList=[]):
-    print 'before', len(remainingReadsList), len(assembledPartsList)
-    if len(assembledPartsList) == 0:
-        assembledPartsList.append(remainingReadsList.pop(0))
+def assembleParts(remainingReadsList):
+    numRemainingBefore = len(remainingReadsList)
+    assembledPartsList = []
 
     while len(remainingReadsList) > 0:
         read = remainingReadsList[-1]
 
         isMatchFound = False
-        for assembly in assembledPartsList:
-            if matchReadInside(read, assembly):
-                print 'hit inside'
-                isMatchFound = True
+        for (i, assembly) in enumerate(assembledPartsList):
+            isMatchFound = matchReadInside(read, assembly)
+            if isMatchFound:
                 remainingReadsList.pop(-1)
                 break
 
             (isMatchFound, newAssembly) = matchReadExtendLeft(read, assembly)
             if isMatchFound:
-                print 'hit left'
-                assembly = newAssembly
+                assembledPartsList[i] = newAssembly
                 remainingReadsList.pop(-1)
                 break
 
             (isMatchFound, newAssembly) = matchReadExtendRight(read, assembly)
             if isMatchFound:
-                print 'hit right'
-                assembly = newAssembly
+                assembledPartsList[i] = newAssembly
                 remainingReadsList.pop(-1)
                 break
 
         if not isMatchFound:
-            print 'no hit'
             assembledPartsList.append(remainingReadsList.pop(-1))
-
-    print 'after', len(remainingReadsList), len(assembledPartsList)
 
     if len(assembledPartsList) == 1:
         return assembledPartsList[0]['sequence']
+    elif len(assembledPartsList) == numRemainingBefore:
+        raise RuntimeError('Unmatched reads, abort.')
     else:
         return assembleParts(assembledPartsList)
 
