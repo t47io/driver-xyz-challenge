@@ -8,6 +8,8 @@ def readFasta(fileName):
         line = line.strip()
 
         if line.startswith('>'):
+            if not len(read):
+                continue
             labels.append(line[1:])
             reads.append(read)
             read = ''

@@ -1,12 +1,15 @@
+from src import assembly
 from src import fileUtil
-
+from src import model
 
 
 
 def main():
     (reads, labels) = fileUtil.readFasta('data/Rosalind_data.txt')
-    print(reads)
-    print(labels)
+
+    readsList = model.initiateReadData(reads)
+    print readsList
+    print assembly.assembleParts(readsList)
 
 
 
