@@ -1,59 +1,59 @@
 from . import model
 
 
-def matchReadInside(read, assembly):
-    return (read['sequence'] in assembly['sequence'])
+def matchReadInside(singleRead, assembledPart):
+    return (singleRead['sequence'] in assembledPart['sequence'])
 
 
-def matchReadExtendLeft(read, assembly):
-    minOverlapLen = max(read['minOverlap'][1], assembly['minOverlap'][0])
-    overlapSequence = assembly['sequence'][0:minOverlapLen]
+def matchReadExtendLeft(singleRead, assembledPart):
+    minOverlapLength = max(singleRead['minOverlapLength']['right'], assembledPart['minOverlapLength']['left'])
+    overlapSequence = assembledPart['sequence'][0:minOverlapLength]
 
-    matchIndex = read['sequence'].find(overlapSequence)
-    if matchIndex == -1:
-        return (False, assembly)
+    matchStartIndex = singleRead['sequence'].find(overlapSequence)
+    if matchStartIndex == -1:
+        return (False, assembledPart)
     else:
-        newSequence = read['sequence'][0:matchIndex] + assembly['sequence']
-        newLeftLen = read['minOverlap'][0]
-        return (True, model.partData(newSequence, newLeftLen, read['minOverlap'][1]))
+        newSequence = singleRead['sequence'][0:matchStartIndex] + assembledPart['sequence']
+        newLeftLength = singleRead['minOverlapLength']['left']
+        return (True, model.partData(newSequence, newLeftLength, singleRead['minOverlapLength']['right']))
 
 
-def matchReadExtendRight(read, assembly):
-    minOverlapLen = max(read['minOverlap'][0], assembly['minOverlap'][1])
-    overlapSequence = assembly['sequence'][-minOverlapLen:]
+def matchReadExtendRight(singleRead, assembledPart):
+    minOverlapLength = max(singleRead['minOverlapLength']['left'], assembledPart['minOverlapLength']['right'])
+    overlapSequence = assembledPart['sequence'][-minOverlapLength:]
 
-    matchIndex = read['sequence'].find(overlapSequence)
-    if matchIndex == -1:
-        return (False, assembly)
+    matchStartIndex = singleRead['sequence'].find(overlapSequence)
+    if matchStartIndex == -1:
+        return (False, assembledPart)
     else:
-        newSequence = assembly['sequence'] + read['sequence'][matchIndex:]
-        newRightLen = read['minOverlap'][1]
-        return (True, model.partData(newSequence, read['minOverlap'][0], newRightLen))
+        newSequence = assembledPart['sequence'] + singleRead['sequence'][matchStartIndex:]
+        newRightLength = singleRead['minOverlapLength']['right']
+        return (True, model.partData(newSequence, singleRead['minOverlapLength']['left'], newRightLength))
 
 
 def assembleParts(remainingReadsList):
-    numRemainingBefore = len(remainingReadsList)
+    remainingListLengthBefore = len(remainingReadsList)
     assembledPartsList = []
 
     while len(remainingReadsList) > 0:
-        read = remainingReadsList[-1]
+        singleRead = remainingReadsList[-1]
 
         isMatchFound = False
-        for (i, assembly) in enumerate(assembledPartsList):
-            isMatchFound = matchReadInside(read, assembly)
+        for (i, assembledPart) in enumerate(assembledPartsList):
+            isMatchFound = matchReadInside(singleRead, assembledPart)
             if isMatchFound:
                 remainingReadsList.pop(-1)
                 break
 
-            (isMatchFound, newAssembly) = matchReadExtendLeft(read, assembly)
+            (isMatchFound, extendedPart) = matchReadExtendLeft(singleRead, assembledPart)
             if isMatchFound:
-                assembledPartsList[i] = newAssembly
+                assembledPartsList[i] = extendedPart
                 remainingReadsList.pop(-1)
                 break
 
-            (isMatchFound, newAssembly) = matchReadExtendRight(read, assembly)
+            (isMatchFound, extendedPart) = matchReadExtendRight(singleRead, assembledPart)
             if isMatchFound:
-                assembledPartsList[i] = newAssembly
+                assembledPartsList[i] = extendedPart
                 remainingReadsList.pop(-1)
                 break
 
@@ -62,8 +62,8 @@ def assembleParts(remainingReadsList):
 
     if len(assembledPartsList) == 1:
         return assembledPartsList[0]['sequence']
-    elif len(assembledPartsList) == numRemainingBefore:
-        raise RuntimeError('Unmatched reads, abort.')
+    elif len(assembledPartsList) == remainingListLengthBefore:
+        raise RuntimeError('\033[41mCould NOT assemble\033[0m reads, possibly by sequencing mismatches.')
     else:
         return assembleParts(assembledPartsList)
 
