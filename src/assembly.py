@@ -60,7 +60,7 @@ def assembleParts(remainingReadsList):
         if not isMatchFound:
             assembledPartsList.append(remainingReadsList.pop(-1))
 
-    if len(assembledPartsList) == 1:
+    if len(assembledPartsList) == 1 and len(remainingReadsList) == 0:
         return assembledPartsList[0]['sequence']
     elif len(assembledPartsList) == remainingListLengthBefore:
         raise RuntimeError('\033[41mCould NOT assemble\033[0m reads, possibly by sequencing mismatches.')

@@ -1,23 +1,27 @@
 def readFasta(fileName):
-    labels = []
-    reads = []
-    read = ''
+    labelsList = []
+    readsList = []
+    singleRead = ''
 
     f = open(fileName, 'r')
     for line in f.readlines():
         line = line.strip()
 
         if line.startswith('>'):
-            if not len(read):
-                continue
-            labels.append(line[1:])
-            reads.append(read)
-            read = ''
+            labelsList.append(line[1:])
+            if len(singleRead):
+                readsList.append(singleRead)
+            singleRead = ''
         else:
-            read += line
-    reads.append(read)
+            singleRead += line
 
-    return (reads, labels)
+    readsList.append(singleRead)
+    f.close()
+
+    if len(readsList) != len(labelsList):
+        raise ValueError('\033[41mMismatch\033[0m in number of sequences (\033[94m%s\033[0m) and labels (\033[94m%s\033[0m) from input FASTA file' % (len(readsList), len(labelsList)))
+
+    return (readsList, labelsList)
 
 
 def writeFasta(fileName, sequenceList, labelList):
@@ -25,7 +29,7 @@ def writeFasta(fileName, sequenceList, labelList):
         sequenceList = [sequenceList]
         labelList = [labelList]
     elif len(sequenceList) != len(labelList):
-        raise ValueError('Mismatch in number of sequences (%s) and labels (%s) to write to FASTA file' % (len(sequenceList), len(labelList)))
+        raise ValueError('\033[41mMismatch\033[0m in number of sequences (\033[94m%s\033[0m) and labels (\033[94m%s\033[0m) to write to FASTA file' % (len(sequenceList), len(labelList)))
 
     f = open(fileName, 'w')
     for i in xrange(len(sequenceList)):
