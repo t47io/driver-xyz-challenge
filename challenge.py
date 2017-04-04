@@ -14,8 +14,9 @@ def main():
     fileUtil.writeFasta('data/%s.txt' % resultName, result, resultName);
     print('\033[92mSUCCESS\033[0m: Read assembly (\033[94m%s\033[0m) finished.' % resultName)
 
-    findIndex.convertReadsToPositions(result, reads, labels)
-    print('\033[92mSUCCESS\033[0m: Read assembly passed test.')
+    (readsIndices, labels) = findIndex.convertReadsToPositions(result, reads, labels)
+    findIndex.validateOverlapLength(readsIndices, labels)
+    print('\033[92mSUCCESS\033[0m: Read assembly (\033[94m%s\033[0m) passed test.' % resultName)
 
 
 if __name__ == '__main__':
