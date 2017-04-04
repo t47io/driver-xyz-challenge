@@ -26,7 +26,7 @@ def matchReadExtendRight(singleRead, assembledPart):
     if matchStartIndex == -1:
         return (False, assembledPart)
     else:
-        newSequence = assembledPart['sequence'] + singleRead['sequence'][matchStartIndex:]
+        newSequence = assembledPart['sequence'] + singleRead['sequence'][(matchStartIndex + minOverlapLength):]
         newRightLength = singleRead['minOverlapLength']['right']
         return (True, model.partData(newSequence, singleRead['minOverlapLength']['left'], newRightLength))
 

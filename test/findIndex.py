@@ -1,7 +1,7 @@
 def findReadPosition(fullAssembly, read, label):
     startIndex = fullAssembly.find(read)
     if startIndex == -1:
-        print('\033[41mFound NO match\033[0m for read (\033[94m%s\033[0m) in assembled result.' % label)
+        raise AssertionError('\033[41mFound NO match\033[0m for read (\033[94m%s\033[0m) in assembled result.' % label)
     endIndex = startIndex + len(read) - 1
 
     return (startIndex, endIndex)
