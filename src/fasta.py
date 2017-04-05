@@ -17,6 +17,7 @@ def readFasta(fileName):
 
     readsList.append(singleRead)
     f.close()
+    print('\033[92mSUCCESS\033[0m: Read inputs from file (\033[94m%s\033[0m).' % fileName)
 
     if len(readsList) != len(labelsList):
         raise ValueError('\033[41mMismatch\033[0m in number of sequences (\033[94m%s\033[0m) and labels (\033[94m%s\033[0m) from input FASTA file' % (len(readsList), len(labelsList)))
@@ -37,3 +38,4 @@ def writeFasta(fileName, sequenceList, labelList):
         f.write('%s\n' % sequenceList[i])
 
     f.close()
+    print('\033[92mSUCCESS\033[0m: Wrote result to file (\033[94m%s\033[0m).' % fileName)
