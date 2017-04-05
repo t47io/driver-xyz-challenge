@@ -1,4 +1,17 @@
 def readFasta(fileName):
+    """Read sequences and labels from a FASTA file.
+
+    Args:
+        fileName (string): Name of FASTA file.
+
+    Returns:
+        readsList (:obj:`list` of :obj:`string`): List of sequencing reads.
+        labelsList (:obj:`list` of :obj:`string`): List of read labels.
+
+    Raises:
+        ValueError: When number of reads and labels do not match.
+    """
+
     labelsList = []
     readsList = []
     singleRead = ''
@@ -26,6 +39,19 @@ def readFasta(fileName):
 
 
 def writeFasta(fileName, sequenceList, labelList):
+    """Write sequences and labels to a FASTA file.
+
+    Args:
+        fileName (string): Name of FASTA file.
+
+    Returns:
+        sequenceList (:obj:`list` of :obj:`string` or string): List of sequencing reads.
+        labelsList (:obj:`list` of :obj:`string` or string): List of read labels; must be same length as "sequenceList".
+
+    Raises:
+        ValueError: When number of sequences and labels do not match.
+    """
+
     if type(sequenceList) is str and type(labelList) is str:
         sequenceList = [sequenceList]
         labelList = [labelList]
