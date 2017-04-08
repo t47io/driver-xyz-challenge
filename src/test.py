@@ -1,3 +1,6 @@
+import re
+
+
 def findReadPosition(fullAssembly, read, label=''):
     """Finds the index of a given target (read) inside the context (fullAssembly)
 
@@ -12,21 +15,25 @@ def findReadPosition(fullAssembly, read, label=''):
         label (string, optional): Label of string target (for logging)
 
     Returns:
-        startIndex (int): The start index of the target in the context
-        endIndex (int): The end index of the target in the context
+        :obj:`tuple` of (
+            startIndex (int): The start index of the target in the context
+            endIndex (int): The end index of the target in the context
+        )
 
     Raises:
         AssertionError: When the target is not found in the context
     """
+    matchIndices = [
+        (match.start(), match.end())
+        for match in re.finditer(read, fullAssembly)
+    ]
 
-    startIndex = fullAssembly.find(read)
     try:
-        assert(startIndex != -1)
+        assert(len(matchIndices) > 0)
     except AssertionError:
         raise Exception('\033[41mERROR\033[0m: Found NO match for read (\033[94m%s\033[0m) in assembled result.' % label)
-    endIndex = startIndex + len(read)
 
-    return (startIndex, endIndex)
+    return matchIndices
 
 
 def convertReadsToPositions(fullAssembly, readsList, labelsList=None):
@@ -50,26 +57,47 @@ def convertReadsToPositions(fullAssembly, readsList, labelsList=None):
         labelsList (:obj:`list` of string, optional): List of label of string target (for logging)
 
     Returns
-        readsIndices (:obj:`list` of `tuple(int, int)`): List of start and end indices tuples sorted by start index
+        readsIndices (:obj:`list` of :obj:`list` of `tuple(int, int)`): List of start and end indices tuples sorted by start index
         labelsList: (:obj:`list` of string): Input "labelsList" sorted according to output "readsIndices"
 
     """
-
     if labelsList is None:
         labelsList = [''] * len(readsList)
 
-    readsIndices = []
+    readsIndicesCombinations = []
     for i in xrange(len(readsList)):
-        readsIndices.append(findReadPosition(fullAssembly, readsList[i], labelsList[i]))
+        # get all possible positions of a read
+        indexTuples = findReadPosition(fullAssembly, readsList[i], labelsList[i])
 
-    sortIndices = sorted(range(len(readsIndices)), key=lambda x: readsIndices[x][0])
-    readsIndices = [readsIndices[i] for i in sortIndices]
-    labelsList = [labelsList[i] for i in sortIndices]
+        if not len(readsIndicesCombinations):
+            readsIndicesCombinations = [[indexTuple] for indexTuple in indexTuples]
+        else:
+            # compose combinations of positions with previous reads
+            newReadsIndicesCombinations = []
+            for readsIndices in readsIndicesCombinations:
+                for indices in indexTuples:
+                    newReadsIndices = [readIndex for readIndex in readsIndices]
+                    newReadsIndices.append(indices)
+                    newReadsIndicesCombinations.append(newReadsIndices)
 
-    return (readsIndices, labelsList)
+            readsIndicesCombinations = newReadsIndicesCombinations
+
+    # sort reads by their start index
+    sortIndicesCombinations = [
+        sorted(range(len(readsIndices)), key=lambda x: readsIndices[x])
+        for readsIndices in readsIndicesCombinations
+    ]
+    for (i, sortIndices) in enumerate(sortIndicesCombinations):
+        readsIndices = readsIndicesCombinations[i]
+        readsIndicesCombinations[i] = [
+            readsIndices[j]
+            for j in sortIndices
+        ]
+
+    return readsIndicesCombinations
 
 
-def validateOverlapLength(readsIndices, labelsList=None, ratio=0.5):
+def validateOverlapLengthEach(readsIndices, ratio=0.5):
     """Check if neighboring reads satisfy the minimum overlapping rule
 
         -------------------              read
@@ -78,29 +106,43 @@ def validateOverlapLength(readsIndices, labelsList=None, ratio=0.5):
 
     Args:
         readsIndices (:obj:`list` of `tuple(int, int)`): List of start and end indices tuples sorted by start index
-        labelsList (:obj:`list` of string, optional): List of label of string target (for logging)
         ratio (float, optional): Minimum overlap ratio between neighbors
 
-    Raises
-        AssertionError: When any pairs of neighbors fail to satisfy minimum overlapping length
-
+    Returns:
+        bool: Whether all the reads satisfy overlapping rule
     """
-
-    if labelsList is None:
-        labelsList = [''] * len(readsIndices)
-
     for i in xrange(1, len(readsIndices)):
         previousRead = readsIndices[i - 1]
         currentRead = readsIndices[i]
 
-        try:
-            assert(previousRead[1] - currentRead[0] >= (previousRead[1] - previousRead[0]) * ratio)
-            assert(previousRead[1] - currentRead[0] >= (currentRead[1] - currentRead[0]) * ratio)
-        except AssertionError:
-            raise Exception('\033[41mERROR\033[0m: Overlapping length between read (\033[94m%s\033[0m) and read (\033[94m%s\033[0m) does not satisfy ratio (\033[93m%s\033[0m).' % (labelsList[i - 1], labelsList[i], ratio))
+        isLeftValid = (previousRead[1] - currentRead[0] >= (previousRead[1] - previousRead[0]) * ratio)
+        isRightValid = (previousRead[1] - currentRead[0] >= (currentRead[1] - currentRead[0]) * ratio)
+        if not (isLeftValid and isRightValid):
+             return False
+    return True
 
 
-def validateCoverage(fullAssembly, readsIndices):
+def validateOverlapLength(readsIndicesCombinations, ratio=0.5):
+    """Check if neighboring reads satisfy the minimum overlapping rule
+
+    Args:
+        readsIndicesCombinations (:obj:`list` of :obj:`list` of `tuple(int, int)`): List of start and end indices tuples sorted by start index
+        ratio (float, optional): Minimum overlap ratio between neighbors
+
+    Raises
+        AssertionError: When none of the combinations has all pairs of neighbors satisfy minimum overlapping length
+
+    """
+    isValid = False
+    for readsIndices in readsIndicesCombinations:
+        if validateOverlapLengthEach(readsIndices):
+            return
+
+    raise AssertionError('\033[41mERROR\033[0m: Overlapping length does not satisfy ratio (\033[93m%s\033[0m).' % ratio)
+    
+
+
+def validateCoverage(fullAssembly, readsIndicesCombinations):
     """Check if the entire context is covered by reads. Based on "validateOverlapLength()", now only need to check the ends not the middle.
 
         ========================== context
@@ -109,7 +151,7 @@ def validateCoverage(fullAssembly, readsIndices):
 
     Args:
         fullAssembly (string): String of context
-        readsIndices (:obj:`list` of `tuple(int, int)`): List of start and end indices tuples sorted by start index
+        readsIndicesCombinations (:obj:`list` of :obj:`list` of `tuple(int, int)`): List of start and end indices tuples sorted by start index
 
     Raises:
         AssertionError: When the reads span is shorter than full context
@@ -117,9 +159,12 @@ def validateCoverage(fullAssembly, readsIndices):
 
     fullAssemblyLength = len(fullAssembly)
 
-    try:
-        assert(readsIndices[0][0] == 0)
-        assert(readsIndices[-1][1] == fullAssemblyLength)
-    except AssertionError:
-        raise Exception('\033[41mERROR\033[0m: Reads (\033[94m%s-%s\033[0m) do not cover full-length context (\033[93m%s\033[0m).' % (readsIndices[0][0], readsIndices[-1][1],fullAssemblyLength))
+    for readsIndices in readsIndicesCombinations:
+        isStartValid = (readsIndices[0][0] == 0)
+        isEndValid = (readsIndices[-1][1] == fullAssemblyLength)
+
+        if (isStartValid and isEndValid):
+             return
+
+    raise AssertionError('\033[41mERROR\033[0m: Reads (\033[94m%s-%s\033[0m) do not cover full-length context (\033[93m%s\033[0m).' % (readsIndices[0][0], readsIndices[-1][1],fullAssemblyLength))
 

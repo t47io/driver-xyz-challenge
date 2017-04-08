@@ -30,8 +30,9 @@ def main():
     fasta.writeFasta(outputFile, result, '%s_assembled' % fileName);
 
     # Test if output is valid
-    (readsIndices, labels) = test.convertReadsToPositions(result, reads, labels)
-    test.validateOverlapLength(readsIndices, labels)
+    readsIndices = test.convertReadsToPositions(result, reads, labels)
+
+    test.validateOverlapLength(readsIndices)
     test.validateCoverage(result, readsIndices)
     print('\033[92mSUCCESS\033[0m: Test passed for assembly (\033[94m%s\033[0m).' % outputFile)
 
