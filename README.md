@@ -2,8 +2,11 @@
 
 ## Problem
 
-See [here](https://github.com/t47io/driver-xyz-challenge/challenge.md).
+See descriptions [here](https://github.com/t47io/driver-xyz-challenge/challenge.md). The solution is based on the following assumptions:
 
+* All reads are on the _sense_ strand. No attempt for matching reverse complement.
+
+* Zero tolerance on nucleotide mismatches (common for sequencing errors).
 
 ## Usage
 
@@ -13,6 +16,7 @@ To assemble the reads, e.g. with the **Rosalind** example data, run:
 git clone https://github.com/t47io/driver-xyz-challenge.git
 cd drive-xyz-challenge
 
+# python 2.x
 python solution.py data/Rosalind_data.txt
 ```
 
@@ -54,7 +58,7 @@ We represent a single read and a partially assembled chunk as **`part`**. It rec
   ============================================  assembly
 ```
 
-Now given two **`part`s** `A` and `B`, there are 4 possibilities:
+Now given two `part`s `A` and `B`, there are 4 possibilities:
 
 #### 1. `A` is encompassed by `B`
 
@@ -72,13 +76,35 @@ Now given two **`part`s** `A` and `B`, there are 4 possibilities:
 
 > Then copy both into the new list, as separate "_assembly sites_" in parallel
 
-#### (5.) `A` encompasses `B` (inverse of 1.)
+And now recursively merging a list of `part`s, we should be able to reduce into one single `part` in the end.
 
-> Treated as 4., since eventually `B` would be gone.
+If the number of `part`s does not decrease in a round, it means we are not able to further assemble. It would raise an error.
 
-And now recursively merging a list of **`part`s**, we should be able to reduce into one single **`part`** in the end.
+#### The above _greedy_ approach was implemented first, see [this commit](https://github.com/t47io/driver-xyz-challenge/tree/4548ee59d1344e4d2c986b872b63391b8cbe0988). However, it is _sensitive to the order of read appearance_.
 
-If the number of **`part`s** does not decrease in a round, it means we are not able to further assemble. It would raise an error (see [Limitation](#limitation)).
+For example, consider a full-length sequence of `ABCAD`, with fragments:
+
+```
+AB, BC, CA, AD
+```
+
+The order of the appearance of these 4 fragments influcence the assembly for the aforementioned greedy approach:
+
+```
+AB, BC, CA, AD => ABC, CAD => ABCAD
+_or_
+AD, BC, CA, AB => AD, BCA, AB => AD, BCAB
+```
+
+Thus, an improved version finds all possible extentions for a given read, and assembles it depth-first. For a particular assembly order, if it reaches dead end, we just give it up. Once a solution is found, the program terminates.
+
+In this new version, we do not remove reads when it's encompassed by another, since it could be useful bridging elsewhere in a highly repetitive sequence to assemble. For example, in the case of full-sequence `ABABABC`, with fragments:
+
+```
+ABA, BAB, ABA, BAB, ABC
+```
+
+Removing duplicates will end up with a shorter assembled full-length. Admittedly, this is a case out of the scope of this challenge, since it does not have 1 single solution given the inputs.
 
 
 ## Test
@@ -91,30 +117,7 @@ The following tests are performed on the assembled result:
 
 * The assembled full-length should be completely covered by input reads.
 
-The testing logic is inside `src/test.py`.
-
-
-## Limitation
-
-The solution is based on the following assumptions:
-
-* All reads are on the _sense_ strand. No attempt for matching reverse complement.
-
-* Zero tolerance on nucleotide mismatches (common for sequencing errors).
-
-In addition, for a full-length sequence with reptitive nature, the result is influenced by the order of the reads. For example:
-
-> Desired output:
-```
-ABCBD
-```
-
-> Read input:
-```
-AB, BD, BC, CB
-```
-
-It can assemble into `ABD, BCB` and fail.
+The testing logic is inside `src/test.py`. Additional test cases are included in `data/`.
 
 
 ## To-Do
