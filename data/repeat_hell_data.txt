@@ -1,0 +1,10 @@
+>Frag_57
+ABA
+>Frag_58
+BAB
+>Frag_59
+ABA
+>Frag_56
+BAB
+>Frag_56
+ABC
